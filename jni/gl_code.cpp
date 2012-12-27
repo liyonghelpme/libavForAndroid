@@ -32,9 +32,17 @@
 #include <asm-generic/errno-base.h>
 #include <errno.h>
 
+#include <sys/time.h>
+extern "C" {
+    #include "libavcodec/avcodec.h"
+    #include "libavformat/avformat.h"
+    #include "libavutil/colorspace.h"
+}
+
 #define  LOG_TAG    "libgl2jni"
 #define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+
 
 
 
@@ -42,6 +50,8 @@ jclass GL2JNIView;
 std::string fileName;
 JNIEnv * jniEnv;
 void saveBmp(char *buffer);
+static void initVideo();
+static void deleteVideo();
 
 static void printGLString(const char *name, GLenum s) {
     const char *v = (const char *) glGetString(s);
@@ -178,13 +188,15 @@ static const char tf[] =
     "varying vec2 uv;\n"
     "void main() {\n"
     "  vec4 t = texture2D(tex, uv);\n"
-    "  gl_FragColor = t.yxzw;\n"
+    "  gl_FragColor = vec4(1.0, 0, 0, 1);\n"
     "}\n";
 
 
 jmethodID jniSaveBmp;
 jmethodID jniPrintHello;
+
 bool setupGraphics(int w, int h) {
+    initVideo();
     GL2JNIView = jniEnv->FindClass("com/android/gl2jni/GL2JNIView");
     LOGI("GL2JNIView %d", GL2JNIView);
     jniSaveBmp = jniEnv->GetStaticMethodID(GL2JNIView, "saveBmp", "([C)V");
@@ -286,7 +298,7 @@ bool setupGraphics(int w, int h) {
         return false;
     }
 
-    LOGI("createProgram %d %d", gProgram, textureProgram);
+    LOGI("createBothProgram %d %d", gProgram, textureProgram);
 
     tvpos = glGetAttribLocation(textureProgram, "vPosition");
     LOGI("glGetAttribLocation(\"tvpos\") = %d\n", tvpos);
@@ -375,7 +387,11 @@ void drawSmallView()
 //读取屏幕像素
 //写入到纹理里面
 //绘制纹理 到 一个 小平面上
+//退出 程序需要 
 void readAndStorePixel();
+int begin = 0;
+struct timeval curTime;
+long passTime = 0;
 void renderFrame() {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -386,24 +402,50 @@ void renderFrame() {
     glClear( GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     checkGlError("glClear");
 
+    //直接绘制到屏幕上每有framebuffer 不能显示
+    //如何 framebuffer 中的texture 绘制到screen 上面？
 	realDraw();//绘制到当前显示屏幕上面
 
     //将当前framebuffer 的纹理 读取出来 写入到默认纹理里面
     //写入显卡的texture中
     drawSmallView();
+    long diff = 0;
+    if(begin == 0)
+    {
+        begin = 1;
+        gettimeofday(&curTime, NULL);
+    }
+    else
+    {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        long diffsec = now.tv_sec-curTime.tv_sec;
+        long diffusec = now.tv_usec-curTime.tv_usec;
+        diff = diffsec*1000+diffusec/1000;
 
-    //readAndStorePixel();
+        curTime.tv_sec = now.tv_sec;
+        curTime.tv_usec = now.tv_usec;
+    }
+    passTime += diff;
+    if(passTime >= 40)
+    {
+        passTime -= 40;
+        readAndStorePixel();
+    }
 
 }
+int frameCount = 0;
+int MAX_FRAME = 40;
 void readAndStorePixel()
 {
+    if(frameCount >= MAX_FRAME)
+        return;
+    frameCount++;
     glViewport(0, 0, width, height);
+
     char *buffer = fetchPixel();
     LOGI("bufferSize %d", buffer[0]);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    checkGlError("glBindTexture");
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-    checkGlError("glTexImage2D");
+
     int i;
     int countRed = 0;
     int countGreen = 0;
@@ -423,6 +465,8 @@ void readAndStorePixel()
 
     saveBmp(buffer);
     free(buffer);
+    if(frameCount == MAX_FRAME)
+        deleteVideo();
 }
 
 
@@ -444,12 +488,187 @@ JNIEXPORT void JNICALL Java_com_android_gl2jni_GL2JNILib_init(JNIEnv * env, jobj
     setupGraphics(width, height);
 }
 
+struct VideoContext {
+    AVCodec *codec;
+    AVCodecContext *c;
+    FILE *f;
+    int outbuf_size;
+    uint8_t *outbuf;
+    AVFrame *picture;
+    uint8_t *picture_buf;
+} videoCtx;
+
+static void initVideo()
+{
+    printf("Video encoding\n");
+    av_register_all();
+    videoCtx.codec = avcodec_find_encoder(CODEC_ID_MPEG4);
+    /* find the mpeg1 video encoder */
+    if (!videoCtx.codec) {
+        fprintf(stderr, "codec not found\n");
+        return;
+    }
+    videoCtx.c = avcodec_alloc_context3(videoCtx.codec);
+
+    /* put sample parameters */
+    videoCtx.c->bit_rate = 400000;
+    /* resolution must be a multiple of two */
+    videoCtx.c->width = 640;
+    videoCtx.c->height = 960;
+    /* frames per second */
+    videoCtx.c->time_base= (AVRational){1, 25};
+    videoCtx.c->gop_size = 10; /* emit one intra frame every ten frames */
+    videoCtx.c->max_b_frames=1;
+    videoCtx.c->pix_fmt = PIX_FMT_YUV420P;
+
+    /* open it */
+    if (avcodec_open2(videoCtx.c, videoCtx.codec, NULL) < 0) {
+        fprintf(stderr, "could not open codec\n");
+        return;
+    }
+
+    LOGI("saveBmp %d %d", bufferSize);
+
+    const char *fn = "/sdcard/";
+    struct stat fs;
+    int ret = stat(fn, &fs);
+    LOGI("sdcard exit %d", ret);
+    if(ret != ENOENT)
+    {
+        ret = stat("/sdcard/gl2", &fs);
+        LOGI("mkdir %d", ret);
+        if(ret != ENOENT)
+        {
+            int errorCode = mkdir("/sdcard/gl2", 0775);
+            LOGI("mkdir error code %d ", errorCode);
+            if(errorCode == -1)
+            {
+                LOGI("error %d %d %d", errno, EACCES, EEXIST);
+            }
+        }
+        videoCtx.f = fopen("/sdcard/gl2/rgb.mp4", "wb");
+        if (!videoCtx.f) {
+            fprintf(stderr, "could not open %s\n", "/sdcard/gl2/rgb.mp4");
+            exit(1);
+        }
+
+        videoCtx.outbuf_size = 500000;
+        videoCtx.outbuf = (uint8_t*)malloc(videoCtx.outbuf_size);
+        videoCtx.picture= avcodec_alloc_frame();
+
+        int size = videoCtx.c->width*videoCtx.c->height;
+        videoCtx.picture_buf = (uint8_t*)malloc((size * 3) / 2); /* size for YUV 420 */
+
+        videoCtx.picture->data[0] = videoCtx.picture_buf;
+        videoCtx.picture->data[1] = videoCtx.picture->data[0] + size;
+        videoCtx.picture->data[2] = videoCtx.picture->data[1] + size / 4;
+        //Y 解析度 是 U V 的两倍
+        videoCtx.picture->linesize[0] = videoCtx.c->width;
+        videoCtx.picture->linesize[1] = videoCtx.c->width / 2;
+        videoCtx.picture->linesize[2] = videoCtx.c->width / 2;
+    }
+}
+static void deleteVideo()
+{
+    /* get the delayed frames */
+    /* add sequence end code to have a real mpeg file */
+    videoCtx.outbuf[0] = 0x00;
+    videoCtx.outbuf[1] = 0x00;
+    videoCtx.outbuf[2] = 0x01;
+    videoCtx.outbuf[3] = 0xb7;
+    fwrite(videoCtx.outbuf, 1, 4, videoCtx.f);
+
+    fclose(videoCtx.f);
+    free(videoCtx.outbuf);
+    avcodec_close(videoCtx.c);
+    av_free(videoCtx.c);
+    free(videoCtx.picture_buf);
+    av_free(videoCtx.picture);
+}
+//每秒20帧
+static void videoEncode(char *rgbbuffer)
+{
+    AVCodec *codec = videoCtx.codec;
+    AVCodecContext *c= videoCtx.c;
+    int i, out_size, size, x, y, outbuf_size;
+    FILE *f;
+    AVFrame *picture;
+    uint8_t *outbuf, *picture_buf;
+
+
+    /* alloc image and output buffer */
+    outbuf_size = videoCtx.outbuf_size;
+    outbuf = videoCtx.outbuf;
+    size = c->width * c->height;
+    
+    int totalLen = c->width*c->height;
+    int countGreen = 0;
+    int redCount = 0;
+    printf("find Red\n");
+    for(i = 0; i < totalLen; i++)
+    {
+        int r, g, b;
+        r = rgbbuffer[i*4+0];
+        g = rgbbuffer[i*4+1];
+        b = rgbbuffer[i*4+2];
+        if(r > 0)
+            redCount++;
+        if(g > 0)
+            countGreen++;
+    }
+    printf("read Green %d %d\n",  redCount, countGreen);
+
+    picture = videoCtx.picture;
+    picture_buf = videoCtx.picture_buf;
+    //Y 4
+    //U 2
+    //V 2
+    
+    //transfer rgb -> yuv
+    /* encode 1 second of video */
+    //420 格式
+    fflush(stdout);
+    /* prepare a dummy image */
+    /* Y */
+    for(y=0;y<c->height;y++) {
+        for(x=0;x<c->width;x++) {
+            int r, g, b;
+            r = rgbbuffer[4*(y*c->width+x)+0];
+            g = rgbbuffer[4*(y*c->width+x)+1];
+            b = rgbbuffer[4*(y*c->width+x)+2];
+            picture->data[0][y*picture->linesize[0]+x] = RGB_TO_Y_CCIR(r, g, b);
+        }
+    }
+
+    //2 * 2平均值0 1
+    //           2 3
+    /* Cb and Cr */
+    for(y=0;y<c->height/2;y++) {
+        for(x=0;x<c->width/2;x++) {
+            int r, g, b;
+            r = rgbbuffer[4*(y*2*c->width+x*2)+0];
+            g = rgbbuffer[4*(y*2*c->width+x*2)+1];
+            b = rgbbuffer[4*(y*2*c->width+x*2)+2];
+
+            picture->data[1][y * picture->linesize[1] + x] = RGB_TO_U_CCIR(r, g, b, 0);
+            picture->data[2][y * picture->linesize[2] + x] = RGB_TO_V_CCIR(r, g, b, 0);
+        }
+    }
+
+    /* encode the image */
+    out_size = avcodec_encode_video(c, outbuf, outbuf_size, picture);
+    printf("encoding frame %3d (size=%5d)\n", i, out_size);
+    fwrite(outbuf, 1, out_size, f);
+
+}
 
 /*
 保存数据到本地的一个二进制文件中
 */
 void saveBmp(char *buffer)
 {
+    videoEncode(buffer);
+    /*
     LOGI("saveBmp %d %d", bufferSize);
 
     const char *fn = "/sdcard/";
@@ -477,12 +696,13 @@ void saveBmp(char *buffer)
             fclose(f);
         }
     }
+    */
 }   
 
 int renderYet = 0;
 JNIEXPORT void JNICALL Java_com_android_gl2jni_GL2JNILib_step(JNIEnv * env, jobject obj)
 {
-    if(!renderYet)
+    //if(!renderYet)
     {
         //LOGI("renderYet %d", renderYet);
         renderFrame();

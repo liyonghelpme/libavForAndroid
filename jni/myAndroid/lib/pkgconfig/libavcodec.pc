@@ -1,0 +1,14 @@
+prefix=/home/liyong/gameEngine/libav-0.8.1/myAndroid
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: libavcodec
+Description: Libav codec library
+Version: 53.35.0
+Requires: 
+Requires.private: libavutil = 51.22.1
+Conflicts:
+Libs: -L${libdir} -lavcodec 
+Libs.private: -lm -lz -lgcc
+Cflags: -I${includedir}
