@@ -37,7 +37,7 @@ extern "C" {
     #include "libavcodec/avcodec.h"
     #include "libavformat/avformat.h"
     #include "libavutil/colorspace.h"
-}
+};
 
 #define  LOG_TAG    "libgl2jni"
 #define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
@@ -472,11 +472,11 @@ void readAndStorePixel()
 
 
 extern "C" {
-    JNIEXPORT void JNICALL Java_com_android_gl2jni_GL2JNILib_init(JNIEnv * env, jobject obj,  jint width, jint height, jbyteArray str);
-    JNIEXPORT void JNICALL Java_com_android_gl2jni_GL2JNILib_step(JNIEnv * env, jobject obj);
+    JNIEXPORT void JNICALL Java_com_liyong_libav_GL2JNILib_init(JNIEnv * env, jobject obj,  jint width, jint height, jbyteArray str);
+    JNIEXPORT void JNICALL Java_com_liyong_libav_GL2JNILib_step(JNIEnv * env, jobject obj);
 };
 
-JNIEXPORT void JNICALL Java_com_android_gl2jni_GL2JNILib_init(JNIEnv * env, jobject obj,  jint width, jint height, jbyteArray str)
+JNIEXPORT void JNICALL Java_com_liyong_libav_GL2JNILib_init(JNIEnv * env, jobject obj,  jint width, jint height, jbyteArray str)
 {
     jniEnv = env;
     jbyte *arraybody = env->GetByteArrayElements(str, 0);
@@ -700,7 +700,7 @@ void saveBmp(char *buffer)
 }   
 
 int renderYet = 0;
-JNIEXPORT void JNICALL Java_com_android_gl2jni_GL2JNILib_step(JNIEnv * env, jobject obj)
+JNIEXPORT void JNICALL Java_com_liyong_libav_GL2JNILib_step(JNIEnv * env, jobject obj)
 {
     //if(!renderYet)
     {

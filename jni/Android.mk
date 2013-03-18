@@ -15,28 +15,16 @@
 LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE    := libavcodec
-LOCAL_SRC_FILES := myAndroid/lib/libavcodec.so
-LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/libav
-include $(PREBUILT_SHARED_LIBRARY)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE    := libavformat
-LOCAL_SRC_FILES := myAndroid/lib/libavformat.so
-LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/libav
-LOCAL_STATIC_LIBRARIES := libavcodec
-include $(PREBUILT_SHARED_LIBRARY)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE    := libavutil
-LOCAL_SRC_FILES := myAndroid/lib/libavutil.so
+LOCAL_MODULE    := libffmpeg
+LOCAL_SRC_FILES := libffmpeg.so
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/libav
 include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE    := libgl2jni
 LOCAL_CFLAGS    := -Werror 
-LOCAL_SRC_FILES := gl_code.cpp
-LOCAL_LDLIBS    := -llog -lGLESv2 
-LOCAL_STATIC_LIBRARIES := libavcodec libavformat libavutil
+LOCAL_CXXFLAGS  := -D__STDC_CONSTANT_MACROS
+LOCAL_SRC_FILES := testFFmpeg.cpp
+LOCAL_LDLIBS    := -llog 
+LOCAL_SHARED_LIBRARIES := libffmpeg
 include $(BUILD_SHARED_LIBRARY)
