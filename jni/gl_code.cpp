@@ -196,12 +196,13 @@ jmethodID jniSaveBmp;
 jmethodID jniPrintHello;
 
 bool setupGraphics(int w, int h) {
-    initVideo();
+    //initVideo();
+
     GL2JNIView = jniEnv->FindClass("com/android/gl2jni/GL2JNIView");
     LOGI("GL2JNIView %d", GL2JNIView);
-    jniSaveBmp = jniEnv->GetStaticMethodID(GL2JNIView, "saveBmp", "([C)V");
-    LOGI("saveBmp %d", jniSaveBmp);
-    jniPrintHello = jniEnv->GetStaticMethodID(GL2JNIView, "printHello", "()V");
+    //jniSaveBmp = jniEnv->GetStaticMethodID(GL2JNIView, "saveBmp", "([C)V");
+    //LOGI("saveBmp %d", jniSaveBmp);
+    //jniPrintHello = jniEnv->GetStaticMethodID(GL2JNIView, "printHello", "()V");
 
 	width = w;
     height = h;
@@ -427,11 +428,13 @@ void renderFrame() {
         curTime.tv_usec = now.tv_usec;
     }
     passTime += diff;
+    /*
     if(passTime >= 40)
     {
         passTime -= 40;
         readAndStorePixel();
     }
+    */
 
 }
 int frameCount = 0;
@@ -667,7 +670,7 @@ static void videoEncode(char *rgbbuffer)
 */
 void saveBmp(char *buffer)
 {
-    videoEncode(buffer);
+    //videoEncode(buffer);
     /*
     LOGI("saveBmp %d %d", bufferSize);
 
