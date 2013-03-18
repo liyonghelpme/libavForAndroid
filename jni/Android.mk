@@ -24,7 +24,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE    := libgl2jni
 LOCAL_CFLAGS    := -Werror 
 LOCAL_CXXFLAGS  := -D__STDC_CONSTANT_MACROS
-LOCAL_SRC_FILES := testFFmpeg.cpp
+LOCAL_SRC_FILES := gl_code.cpp
 LOCAL_LDLIBS    := -llog 
 LOCAL_SHARED_LIBRARIES := libffmpeg
 include $(BUILD_SHARED_LIBRARY)
