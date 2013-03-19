@@ -1,0 +1,12 @@
+openglEs2Libav
+==============
+
+jni/libav
+配置NDK 的位置 
+使用NDK standardalone 生成一个sysroot 简化编译链工具
+./armBuild.sh 编译libav 交叉编译 
+./makelib.sh 链接生成库
+ndk-build
+ant debug
+ant install
+

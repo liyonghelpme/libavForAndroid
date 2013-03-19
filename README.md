@@ -1,4 +1,0 @@
-openglEs2Libav
-==============
-
-openglEsTest
