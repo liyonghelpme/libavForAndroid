@@ -1,9 +1,15 @@
 #!/bin/bash
-PREFIX=./myAndroid
-NDK=~/android-ndk-r8
-PLATFORM=$NDK/mytool
-PREBUILD=$NDK/mytool
+#PREFIX=./myAndroid
+#NDK=~/android-ndk-r8
+#PLATFORM=$NDK/mytool
+#PREBUILD=$NDK/mytool
 
-$PREBUILD/bin/arm-linux-androideabi-ar d libavcodec/libavcodec.a inverse.o
-$PREBUILD/bin/arm-linux-androideabi-ld -rpath-link=$PLATFORM/sysroot/usr/lib -L$PLATFORM/sysroot/usr/lib  -soname libffmpeg.so -shared -nostdlib  -z,noexecstack -Bsymbolic --whole-archive --no-undefined -o $PREFIX/libffmpeg.so libavcodec/libavcodec.a libavformat/libavformat.a libavutil/libavutil.a libswscale/libswscale.a  -lc -lm -lz -ldl -llog  --warn-once  --dynamic-linker=/system/bin/linker $PREBUILD/lib/gcc/arm-linux-androideabi/4.4.3/libgcc.a
-cp $PREFIX/libffmpeg.so ../
+PREFIX=./myIOS
+
+IOS=/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr
+#include and lib
+IOSLIB=/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS6.1.sdk
+PREBUILD=$IOS
+
+$PREBUILD/bin/ar d libavcodec/libavcodec.a inverse.o
+$PREBUILD/bin/ld -arch armv7  -syslibroot $IOSLIB  -install_name libffmpeg.dylib -dylib  -o $PREFIX/libffmpeg.dylib libavcodec/libavcodec.a libavformat/libavformat.a libavutil/libavutil.a libswscale/libswscale.a  
