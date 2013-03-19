@@ -1,15 +1,20 @@
-#!/bin/bash
-PREFIX=./myAndroid
-NDK=~/android-ndk-r8
-PLATFORM=$NDK/mytool
-PREBUILD=$NDK/mytool
-./configure --target-os=linux \
+#/bin/bash
+PREFIX=./myIOS
+#NDK=~/android-ndk-r8
+#PLATFORM=$NDK/mytool
+#PREBUILD=$NDK/mytool
+
+IOS=/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr
+#include and lib
+IOSLIB=/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS6.1.sdk
+
+./configure --target-os=darwin \
     --enable-cross-compile \
-    --extra-libs="-lgcc -lx264" \
+    --extra-libs="-lgcc" \
     --prefix=$PREFIX  \
-    --disable-yasm \
     --arch=arm \
-    --sysroot=$PLATFORM/sysroot \
+    --cpu=cortex-a8 \
+    --sysroot=$IOSLIB \
     --enable-version3 \
     --enable-gpl \
     --enable-shared \
@@ -24,6 +29,7 @@ PREBUILD=$NDK/mytool
     --enable-demuxers \
     --disable-parsers \
     --enable-encoder=mpeg4 \
+    --disable-yasm \
     --disable-doc \
     --disable-avconv \
     --disable-ffmpeg \
@@ -34,12 +40,12 @@ PREBUILD=$NDK/mytool
     --disable-protocols \
     --enable-protocol=file \
     --disable-network \
-    --cc=$PREBUILD/bin/arm-linux-androideabi-gcc \
-    --cross-prefix=$PREBUILD/bin/arm-linux-androideabi- \
-    --nm=$PREBUILD/bin/arm-linux-androideabi-nm \
-    --extra-cflags=" -fPIC -DANDROID -I../libx264/x264-0.120.2151+gita3f4407/myAndroid/include" \
+    --cc=$IOS/bin/gcc \
+    --cross-prefix=$IOS/bin/ \
+    --nm=$IOS/bin/nm \
+    --extra-cflags="-arch armv7" \
     --disable-asm \
-    --extra-ldflags="-Wl,-rpath-link=$PLATFORM/lib -Wl,-rpath-link=. -L $PLATFORM/lib -L . -nostdlib -lc -lm -ldl -llog"
+    --extra-ldflags="-arch armv7 -isysroot $IOSLIB "
     
 #make -j4  
 
