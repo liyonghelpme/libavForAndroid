@@ -22,9 +22,9 @@ include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE    := libgl2jni
-LOCAL_CFLAGS    := -Werror
+#LOCAL_CFLAGS    := -Werror
 LOCAL_CXXFLAGS  := -D__STDC_CONSTANT_MACROS
-LOCAL_SRC_FILES := testFFmpeg.cpp
+LOCAL_SRC_FILES := testFFmpeg.cpp yuv420.c
 LOCAL_LDLIBS    := -llog -lGLESv2
 LOCAL_SHARED_LIBRARIES := libffmpeg
 include $(BUILD_SHARED_LIBRARY)

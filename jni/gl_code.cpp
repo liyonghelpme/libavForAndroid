@@ -195,6 +195,7 @@ static const char tf[] =
 jmethodID jniSaveBmp;
 jmethodID jniPrintHello;
 
+
 bool setupGraphics(int w, int h) {
     //initVideo();
 
