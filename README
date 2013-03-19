@@ -1,5 +1,9 @@
 openglEs2Libav
 ==============
+环境:
+    ubuntu 12.04 
+    libav 
+
 
 jni/libav
 配置NDK 的位置 
@@ -9,4 +13,5 @@ jni/libav
 ndk-build
 ant debug
 ant install
+
 
